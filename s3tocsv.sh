@@ -1,9 +1,5 @@
 #!/bin/bash
 function getFolder() {
-  if [ $# -eq "0" ]; then
-    echo "No arguments provided to function"
-    exit 1
-  fi
   regex_BH="^BH"
   regex_R="^R"
   regex_B="^B"
@@ -37,40 +33,40 @@ function getFolder() {
 endpoint="https://fenyw-images.s3.amazonaws.com/"
 doesE=0
 doesN=0
-if [[ "$#" -eq "2" ]]; then
-  singleImages="out/${2}"
-  notFound="out/notFound.csv"
-  >$singleImages
-  >$notFound
-  while IFS=, read -r col1 || [ -n "$col1" ]; do
-    OIFS=$IFS
-    col1=${col1%$'\r'}
-    oldcol=$col1
-    if [[ $col1 =~ ^R ]]; then
-      col1=${col1%?}
-    fi
-    folder="$(getFolder "$col1")"
-    fileName=$(rclone lsf "fenyw-s3:fenyw-images/${folder}" | egrep -m 1 ^${col1}\.)
-    fileName=${fileName// /+}
-    echo "Trying: $oldcol"
-    if [[ "$fileName" ]]; then
-      path="${endpoint}${folder}/${fileName}"
-      echo "$oldcol,$path" >>$singleImages
-      echo "$oldcol exists\n"
-      doesE=$((doesE + 1))
-    else
-      echo "$col1 does not exist\n"
-      echo "$oldcol","NA">>$singleImages
-      echo "$col1" >>$notFound
-      doesN=$((doesN + 1))
-    fi
-    IFS=$OIFS
-  done <$1
-  echo "Tried: $((doesE + doesN)) images"
-  echo "${doesE} exist"
-  echo "${doesN} do not exist"
-  echo "Output stored in files"
-else
-  echo "Not enough arguments provided"
-  exit 1
-fi
+fileNum=0
+notFound="out/failed.csv"
+if [ ! -e "$notFound" ]; then touch $notFound; fi
+    for csvfile in in/*.csv; do
+    singleImages="out/${csvfile##*/}"
+    if [ ! -e "$singleImages" ]; then touch "$singleImages"; fi
+        while IFS=, read -r col1 || [ -n "$col1" ]; do
+            OIFS=$IFS
+            col1=${col1%$'\r'}
+            oldcol=$col1
+        if [[ $col1 =~ ^R ]]; then
+          col1=${col1%?}
+        fi
+        folder="$(getFolder "$col1")"
+        fileName=$(rclone lsf "fenyw-s3:fenyw-images/${folder}" | egrep -m 1 ^${col1}\.)
+        fileName=${fileName// /+}
+        echo "Trying: $oldcol"
+        if [[ "$fileName" ]]; then
+            path="${endpoint}${folder}/${fileName}"
+            echo "$oldcol,$path" >>$singleImages
+            echo "$oldcol exists\n"
+            doesE=$((doesE + 1))
+        else
+            echo "$col1 does not exist\n"
+            echo "$col1" >>$notFound
+            echo "$oldcol","NA">>$singleImages
+            doesN=$((doesN + 1))
+        fi
+        IFS=$OIFS
+        fileNum=$((fileNum + 1))
+        done <$csvfile
+    done
+echo "Tried: ${fileNum} files"
+echo "Tried: $((doesE + doesN)) images"
+echo "${doesE} exist"
+echo "${doesN} do not exist"
+echo "Output files stored in /out"
