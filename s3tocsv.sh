@@ -53,8 +53,8 @@ if [ ! -e "$notFound" ]; then touch $notFound; fi
             col1=${col1//[^[:alnum:]]/}
             #fileName=${col1// /+}
             folder="$(getFolder "$col1")"
-            echo ${folder}
-            fileName=$(rclone lsf --files-only --include "${col1}.*" fenyw-s3:fenyw-images/${folder})
+            echo ${csvfile}
+            fileName=$(rclone lsf --files-only --include "${col1}.*" "fenyw-s3:fenyw-images/${folder}")
             fileName=${fileName// /+}
             echo "Trying: $oldcol"
             if [[ "$fileName" ]]; then
@@ -69,11 +69,11 @@ if [ ! -e "$notFound" ]; then touch $notFound; fi
                 doesN=$((doesN + 1))
             fi
             IFS=$OIFS
-            fileNum=$((fileNum + 1))
         done <$csvfile
+        fileNum=$((fileNum + 1))
     done
-echo "Tried: ${fileNum} files"
-echo "Tried: $((doesE + doesN)) images"
+echo "Tried: ${fileNum} file(s)"
+echo "Tried: $((doesE + doesN)) image(s)"
 echo "${doesE} exist"
 echo "${doesN} do not exist"
 echo "Output files stored in /out"
